@@ -198,6 +198,7 @@
     <button class="balance-btn dep" onclick="openDepositInfo()">⬇ DEP</button>
     <button class="balance-btn wd" onclick="openWithdraw()">⬆ WD</button>
     <button class="balance-btn" onclick="openHistory()">📋</button>
+    <button class="balance-btn" onclick="openRedeem()" style="border-color:#a052e0;color:#a052e0;">🎁</button>
   </div>
 </div>
 
@@ -295,7 +296,7 @@
 <!-- COINFLIP PAGE -->
 <div class="page" id="page-coinflip">
   <div class="game-container">
-    <div class="game-header"><div class="game-title">🪙 COINFLIP</div><div class="game-subtitle">CALL IT — 50/50 CHANCE — 1.95x PAYOUT</div></div>
+    <div class="game-header"><div class="game-title">🪙 COINFLIP</div><div class="game-subtitle">CALL IT — 50/50 CHANCE — 1.90x PAYOUT (95% RTP)</div></div>
     <div class="bet-row">
       <span class="bet-label">BET</span>
       <input type="number" class="bet-input" id="cfBet" placeholder="0" min="1"/>
@@ -409,6 +410,23 @@
     <button class="modal-close" onclick="closeModal('historyModal')">CLOSE</button>
   </div>
 </div>
+<!-- REDEEM MODAL -->
+<div class="modal-overlay" id="redeemModal">
+  <div class="modal-box">
+    <div class="modal-title">🎁 REDEEM CODE</div>
+    <div class="modal-body">
+      <p style="color:var(--text-muted);font-size:13px;margin-bottom:14px">Enter a promo code to claim free balance.</p>
+      <label style="font-size:11px;letter-spacing:.2em;color:var(--text-muted)">PROMO CODE</label>
+      <input type="text" id="redeemInput" placeholder="e.g. WELCOME" class="modal-input" style="margin-top:6px;text-transform:uppercase;letter-spacing:.1em;"/>
+      <div class="modal-msg" id="redeemMsg"></div>
+    </div>
+    <div style="display:flex;gap:8px;padding:0 20px 16px">
+      <button class="modal-btn" style="flex:1" onclick="doRedeem()">REDEEM</button>
+      <button class="modal-btn cancel" onclick="closeModal('redeemModal')">CANCEL</button>
+    </div>
+  </div>
+</div>
+
 <div class="admin-panel" id="adminPanel">
   <div class="admin-title">⚙ ADMIN PANEL <span class="admin-close" onclick="closeAdmin()">✕</span></div>
   <div class="admin-row">
@@ -532,10 +550,10 @@ async function bjStand(){
   const ps=bjHandVal(bjState.playerHand),ds=bjHandVal(bjState.dealerHand),bet=bjState.bet;
   let payout=0,txt='',cls='';
   if(ps>21){txt=`BUST! Lost $${fmtMoney(bet)}`;cls='lose';}
-  else if(ds>21){payout=bet*2;txt=`DEALER BUSTS! +$${fmtMoney(bet)}`;cls='win';}
-  else if(ps===21&&bjState.playerHand.length===2&&!(ds===21&&bjState.dealerHand.length===2)){payout=Math.floor(bet*2.5);txt=`BLACKJACK! +$${fmtMoney(payout-bet)}`;cls='win';}
-  else if(ps>ds){payout=bet*2;txt=`YOU WIN! +$${fmtMoney(bet)}`;cls='win';}
-  else if(ps===ds){payout=bet;txt=`PUSH — Bet returned`;cls='push';}
+  else if(ds>21){payout=Math.floor(bet*1.9);txt=`DEALER BUSTS! +$${fmtMoney(payout-bet)}`;cls='win';}
+  else if(ps===21&&bjState.playerHand.length===2&&!(ds===21&&bjState.dealerHand.length===2)){payout=Math.floor(bet*2.375);txt=`BLACKJACK! +$${fmtMoney(payout-bet)}`;cls='win';}
+  else if(ps>ds){payout=Math.floor(bet*1.9);txt=`YOU WIN! +$${fmtMoney(payout-bet)}`;cls='win';}
+  else if(ps===ds){payout=Math.floor(bet*0.95);txt=`PUSH — Bet returned (95%)`;cls='push';}
   else{txt=`DEALER WINS — Lost $${fmtMoney(bet)}`;cls='lose';}
   const el=document.getElementById('bjResult');el.textContent=txt;el.className='result-banner '+cls;
   if(payout>0){const r=await fetch('/api/game/payout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:_token,amount:payout,game:'blackjack',note:txt})});const d=await r.json();if(r.ok){_profile.balance=d.newBalance;updateBalanceUI();}}
@@ -560,7 +578,7 @@ async function cfFlip(){
   const result=Math.random()<0.5?'heads':'tails';
   setTimeout(async()=>{
     coin.className='cf-coin '+result;coin.textContent=result==='heads'?'♛':'♙';
-    const won=result===cfChoice;const payout=won?Math.floor(bet*1.95):0;
+    const won=result===cfChoice;const payout=won?Math.floor(bet*1.90):0;
     const txt=won?`${result.toUpperCase()}! +$${fmtMoney(payout-bet)}`:`${result.toUpperCase()}! Lost $${fmtMoney(bet)}`;
     const el=document.getElementById('cfResult');el.textContent=txt;el.className='result-banner '+(won?'win':'lose');
     if(won){const r=await fetch('/api/game/payout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:_token,amount:payout,game:'coinflip',note:txt})});const d=await r.json();if(r.ok){_profile.balance=d.newBalance;updateBalanceUI();}}
@@ -570,7 +588,7 @@ async function cfFlip(){
 }
 
 // ══ MINES ══
-const MINE_MULTS=[1,1.12,1.28,1.47,1.74,2.1,2.6,3.3,4.3,5.8,8,11,16,24,38,62,106,190,360,740,1700,5000,25000,500000];
+const MINE_MULTS=[1,1.06,1.22,1.4,1.65,1.99,2.47,3.13,4.08,5.51,7.6,10.45,15.2,22.8,36.1,58.9,100.7,180.5,342.0,703.0,1615.0,4750.0,23750.0,475000.0];
 let minesState={active:false,minePositions:new Set(),revealed:new Set(),bet:0};
 function minesGetMult(gems){return MINE_MULTS[Math.min(gems,MINE_MULTS.length-1)]||1;}
 function minesRenderBoard(){
@@ -600,13 +618,67 @@ async function minesStart(){
   document.getElementById('minesCurrentWin').textContent='$0';
   document.getElementById('minesMultiplier').textContent='1.00x';
   document.getElementById('minesGems').textContent='0';
-  minesRenderBoard();
+  function openRedeem() {
+  document.getElementById('redeemInput').value = '';
+  document.getElementById('redeemMsg').textContent = '';
+  document.getElementById('redeemModal').classList.add('open');
+}
+async function doRedeem() {
+  const code = document.getElementById('redeemInput').value.trim().toUpperCase();
+  if (!code) { setModalMsg('redeemMsg', 'Enter a code.', 'error'); return; }
+  try {
+    const res = await fetch('/api/redeem', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ token:_token, code }) });
+    const data = await res.json();
+    if (res.ok) {
+      _profile.balance = data.newBalance; updateBalanceUI();
+      setModalMsg('redeemMsg', `Code redeemed! +$${fmtMoney(data.amount)} added to your balance!`, 'success');
+      setTimeout(() => closeModal('redeemModal'), 2000);
+      loadProfile();
+    } else {
+      setModalMsg('redeemMsg', data.error || 'Failed.', 'error');
+    }
+  } catch(e) { setModalMsg('redeemMsg', 'Server error.', 'error'); }
+}
+// close redeem modal on overlay click
+document.addEventListener('click', e => {
+  const el = document.getElementById('redeemModal');
+  if (e.target === el) el.classList.remove('open');
+});
+
+minesRenderBoard();
 }
 function minesReveal(i){
   if(!minesState.active||minesState.revealed.has(i))return;
   minesState.revealed.add(i);
   if(minesState.minePositions.has(i)){
-    minesState.active=false;minesState.minePositions.forEach(p=>minesState.revealed.add(p));minesRenderBoard();
+    minesState.active=false;minesState.minePositions.forEach(p=>minesState.revealed.add(p));function openRedeem() {
+  document.getElementById('redeemInput').value = '';
+  document.getElementById('redeemMsg').textContent = '';
+  document.getElementById('redeemModal').classList.add('open');
+}
+async function doRedeem() {
+  const code = document.getElementById('redeemInput').value.trim().toUpperCase();
+  if (!code) { setModalMsg('redeemMsg', 'Enter a code.', 'error'); return; }
+  try {
+    const res = await fetch('/api/redeem', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ token:_token, code }) });
+    const data = await res.json();
+    if (res.ok) {
+      _profile.balance = data.newBalance; updateBalanceUI();
+      setModalMsg('redeemMsg', `Code redeemed! +$${fmtMoney(data.amount)} added to your balance!`, 'success');
+      setTimeout(() => closeModal('redeemModal'), 2000);
+      loadProfile();
+    } else {
+      setModalMsg('redeemMsg', data.error || 'Failed.', 'error');
+    }
+  } catch(e) { setModalMsg('redeemMsg', 'Server error.', 'error'); }
+}
+// close redeem modal on overlay click
+document.addEventListener('click', e => {
+  const el = document.getElementById('redeemModal');
+  if (e.target === el) el.classList.remove('open');
+});
+
+minesRenderBoard();
     const el=document.getElementById('minesResult');el.textContent=`💣 BOOM! Lost $${fmtMoney(minesState.bet)}`;el.className='result-banner lose';
     document.getElementById('minesCashoutBtn').disabled=true;
     fetch('/api/game/loss',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:_token,amount:minesState.bet,game:'mines',note:'Hit a mine'})});
@@ -616,13 +688,67 @@ function minesReveal(i){
     document.getElementById('minesCurrentWin').textContent='$'+fmtMoney(win);
     document.getElementById('minesMultiplier').textContent=mult.toFixed(2)+'x';
     document.getElementById('minesGems').textContent=gems;
-    minesRenderBoard();
+    function openRedeem() {
+  document.getElementById('redeemInput').value = '';
+  document.getElementById('redeemMsg').textContent = '';
+  document.getElementById('redeemModal').classList.add('open');
+}
+async function doRedeem() {
+  const code = document.getElementById('redeemInput').value.trim().toUpperCase();
+  if (!code) { setModalMsg('redeemMsg', 'Enter a code.', 'error'); return; }
+  try {
+    const res = await fetch('/api/redeem', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ token:_token, code }) });
+    const data = await res.json();
+    if (res.ok) {
+      _profile.balance = data.newBalance; updateBalanceUI();
+      setModalMsg('redeemMsg', `Code redeemed! +$${fmtMoney(data.amount)} added to your balance!`, 'success');
+      setTimeout(() => closeModal('redeemModal'), 2000);
+      loadProfile();
+    } else {
+      setModalMsg('redeemMsg', data.error || 'Failed.', 'error');
+    }
+  } catch(e) { setModalMsg('redeemMsg', 'Server error.', 'error'); }
+}
+// close redeem modal on overlay click
+document.addEventListener('click', e => {
+  const el = document.getElementById('redeemModal');
+  if (e.target === el) el.classList.remove('open');
+});
+
+minesRenderBoard();
   }
 }
 async function minesCashout(){
   if(!minesState.active||minesState.revealed.size===0)return;
   const gems=minesState.revealed.size,mult=minesGetMult(gems),payout=Math.floor(minesState.bet*mult);
-  minesState.active=false;minesRenderBoard();
+  minesState.active=false;function openRedeem() {
+  document.getElementById('redeemInput').value = '';
+  document.getElementById('redeemMsg').textContent = '';
+  document.getElementById('redeemModal').classList.add('open');
+}
+async function doRedeem() {
+  const code = document.getElementById('redeemInput').value.trim().toUpperCase();
+  if (!code) { setModalMsg('redeemMsg', 'Enter a code.', 'error'); return; }
+  try {
+    const res = await fetch('/api/redeem', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ token:_token, code }) });
+    const data = await res.json();
+    if (res.ok) {
+      _profile.balance = data.newBalance; updateBalanceUI();
+      setModalMsg('redeemMsg', `Code redeemed! +$${fmtMoney(data.amount)} added to your balance!`, 'success');
+      setTimeout(() => closeModal('redeemModal'), 2000);
+      loadProfile();
+    } else {
+      setModalMsg('redeemMsg', data.error || 'Failed.', 'error');
+    }
+  } catch(e) { setModalMsg('redeemMsg', 'Server error.', 'error'); }
+}
+// close redeem modal on overlay click
+document.addEventListener('click', e => {
+  const el = document.getElementById('redeemModal');
+  if (e.target === el) el.classList.remove('open');
+});
+
+minesRenderBoard();
   const note=`Mines: ${gems} gems, ${mult.toFixed(2)}x`;
   document.getElementById('minesResult').textContent=`💎 CASHED OUT +$${fmtMoney(payout-minesState.bet)}`;
   document.getElementById('minesResult').className='result-banner win';
@@ -632,7 +758,7 @@ async function minesCashout(){
 }
 
 // ══ TOWERS ══
-const TOWERS_CFG={easy:{safe:3,traps:1,cols:4,mult:1.25},medium:{safe:2,traps:1,cols:3,mult:1.45},hard:{safe:1,traps:2,cols:3,mult:2.00}};
+const TOWERS_CFG={easy:{safe:3,traps:1,cols:4,mult:1.19},medium:{safe:2,traps:1,cols:3,mult:1.33},hard:{safe:1,traps:2,cols:3,mult:2.85}};
 const TOWERS_ROWS=8;
 let towersState={active:false,rows:[],currentRow:0,bet:0,diff:'medium',multiplier:1};
 function towersBuildRows(diff){const cfg=TOWERS_CFG[diff],rows=[];for(let r=0;r<TOWERS_ROWS;r++){const cols=Array(cfg.cols).fill('safe');let p=0;while(p<cfg.traps){const idx=Math.floor(Math.random()*cfg.cols);if(cols[idx]==='safe'){cols[idx]='trap';p++;}}rows.push(cols);}return rows;}
@@ -705,6 +831,33 @@ async function towersCashout(){
   const r=await fetch('/api/game/payout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:_token,amount:payout,game:'towers',note})});
   const d=await r.json();if(r.ok){_profile.balance=d.newBalance;updateBalanceUI();}loadProfile();
 }
+
+function openRedeem() {
+  document.getElementById('redeemInput').value = '';
+  document.getElementById('redeemMsg').textContent = '';
+  document.getElementById('redeemModal').classList.add('open');
+}
+async function doRedeem() {
+  const code = document.getElementById('redeemInput').value.trim().toUpperCase();
+  if (!code) { setModalMsg('redeemMsg', 'Enter a code.', 'error'); return; }
+  try {
+    const res = await fetch('/api/redeem', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ token:_token, code }) });
+    const data = await res.json();
+    if (res.ok) {
+      _profile.balance = data.newBalance; updateBalanceUI();
+      setModalMsg('redeemMsg', `Code redeemed! +$${fmtMoney(data.amount)} added to your balance!`, 'success');
+      setTimeout(() => closeModal('redeemModal'), 2000);
+      loadProfile();
+    } else {
+      setModalMsg('redeemMsg', data.error || 'Failed.', 'error');
+    }
+  } catch(e) { setModalMsg('redeemMsg', 'Server error.', 'error'); }
+}
+// close redeem modal on overlay click
+document.addEventListener('click', e => {
+  const el = document.getElementById('redeemModal');
+  if (e.target === el) el.classList.remove('open');
+});
 
 minesRenderBoard();
 towersState.rows=towersBuildRows('medium');towersRenderGrid();
