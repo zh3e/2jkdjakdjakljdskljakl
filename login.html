@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Blaze Casino — Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --gold: #f5b942;
+      --gold-dim: #c8942a;
+      --bg: #0a0a0e;
+      --surface: #12121a;
+      --surface2: #1a1a26;
+      --border: #2a2a3a;
+      --text: #e8e0d0;
+      --text-muted: #6b6880;
+      --red: #e05252;
+      --green: #52e07a;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Rajdhani', sans-serif;
+      overflow: hidden;
+    }
+
+    canvas#particles {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+    }
+
+    /* Brand */
+    .brand {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+    .brand-icon {
+      font-size: 48px;
+      color: var(--gold);
+      text-shadow: 0 0 30px #f5b94288;
+      line-height: 1;
+      margin-bottom: 8px;
+      animation: pulse 2.5s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { text-shadow: 0 0 20px #f5b94266; }
+      50% { text-shadow: 0 0 50px #f5b942cc; }
+    }
+    .brand-title {
+      font-family: 'Cinzel', serif;
+      font-size: 36px;
+      font-weight: 900;
+      letter-spacing: 0.15em;
+      color: var(--gold);
+      text-shadow: 0 0 20px #f5b94244;
+    }
+    .brand-sub {
+      font-size: 13px;
+      letter-spacing: 0.3em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+
+    /* Card */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      width: 380px;
+      padding: 36px 32px;
+      box-shadow: 0 20px 60px #00000088, 0 0 0 1px #f5b94211;
+      position: relative;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 10%; right: 10%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 28px;
+      border-bottom: 1px solid var(--border);
+    }
+    .tab-btn {
+      flex: 1;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-family: 'Cinzel', serif;
+      font-size: 13px;
+      letter-spacing: 0.1em;
+      padding: 10px 0;
+      cursor: pointer;
+      transition: color 0.2s;
+      position: relative;
+    }
+    .tab-btn.active {
+      color: var(--gold);
+    }
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px; left: 0; right: 0;
+      height: 2px;
+      background: var(--gold);
+      box-shadow: 0 0 8px var(--gold);
+    }
+
+    /* Form */
+    .form { display: flex; flex-direction: column; gap: 16px; }
+
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field label {
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .field input {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      color: var(--text);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .field input:focus {
+      border-color: var(--gold-dim);
+      box-shadow: 0 0 0 2px #f5b94222;
+    }
+    .field input::placeholder { color: var(--text-muted); font-weight: 400; }
+
+    .submit-btn {
+      margin-top: 4px;
+      background: linear-gradient(135deg, #f5b942, #c8942a);
+      border: none;
+      border-radius: 3px;
+      color: #0a0a0e;
+      font-family: 'Cinzel', serif;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      padding: 13px;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s, box-shadow 0.2s;
+      box-shadow: 0 4px 20px #f5b94244;
+    }
+    .submit-btn:hover { opacity: 0.92; box-shadow: 0 4px 30px #f5b94266; }
+    .submit-btn:active { transform: scale(0.98); }
+    .submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Message */
+    .msg {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      min-height: 18px;
+      text-align: center;
+      margin-top: -4px;
+    }
+    .msg.error { color: var(--red); }
+    .msg.success { color: var(--green); }
+
+    /* Decorative corners */
+    .card-corner {
+      position: absolute;
+      width: 12px; height: 12px;
+      border-color: var(--gold-dim);
+      border-style: solid;
+      opacity: 0.5;
+    }
+    .card-corner.tl { top: 8px; left: 8px; border-width: 1px 0 0 1px; }
+    .card-corner.tr { top: 8px; right: 8px; border-width: 1px 1px 0 0; }
+    .card-corner.bl { bottom: 8px; left: 8px; border-width: 0 0 1px 1px; }
+    .card-corner.br { bottom: 8px; right: 8px; border-width: 0 1px 1px 0; }
+  </style>
+</head>
+<body>
+
+<canvas id="particles"></canvas>
+
+<div class="page">
+  <div class="brand">
+    <div class="brand-icon">♠</div>
+    <div class="brand-title">JACKPOT</div>
+    <div class="brand-sub">Blaze Casino</div>
+  </div>
+
+  <div class="card">
+    <div class="card-corner tl"></div>
+    <div class="card-corner tr"></div>
+    <div class="card-corner bl"></div>
+    <div class="card-corner br"></div>
+
+    <div class="tabs">
+      <button class="tab-btn active" id="tabLogin" onclick="switchTab('login')">LOGIN</button>
+      <button class="tab-btn" id="tabSignup" onclick="switchTab('signup')">SIGN UP</button>
+    </div>
+
+    <!-- LOGIN FORM -->
+    <div id="formLogin" class="form">
+      <div class="field">
+        <label>Username</label>
+        <input type="text" id="loginUsername" placeholder="Enter username" autocomplete="username"/>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="loginPassword" placeholder="Enter password" autocomplete="current-password"/>
+      </div>
+      <div class="msg" id="loginMsg"></div>
+      <button class="submit-btn" onclick="doLogin()">ENTER THE CASINO</button>
+    </div>
+
+    <!-- SIGNUP FORM -->
+    <div id="formSignup" class="form" style="display:none">
+      <div class="field">
+        <label>Username</label>
+        <input type="text" id="signupUsername" placeholder="Choose a username" autocomplete="username"/>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="signupPassword" placeholder="Choose a password" autocomplete="new-password"/>
+      </div>
+      <div class="field">
+        <label>Confirm Password</label>
+        <input type="password" id="signupConfirm" placeholder="Repeat password" autocomplete="new-password"/>
+      </div>
+      <div class="msg" id="signupMsg"></div>
+      <button class="submit-btn" onclick="doSignup()">CREATE ACCOUNT</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Tab switching ──────────────────────────────
+function switchTab(tab) {
+  document.getElementById('formLogin').style.display = tab === 'login' ? 'flex' : 'none';
+  document.getElementById('formSignup').style.display = tab === 'signup' ? 'flex' : 'none';
+  document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
+  document.getElementById('tabSignup').classList.toggle('active', tab === 'signup');
+  clearMsgs();
+}
+
+function clearMsgs() {
+  document.getElementById('loginMsg').textContent = '';
+  document.getElementById('signupMsg').textContent = '';
+}
+
+function setMsg(id, text, type) {
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.className = 'msg ' + type;
+}
+
+// ── Login ──────────────────────────────────────
+async function doLogin() {
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value;
+
+  if (!username || !password) {
+    setMsg('loginMsg', 'Please fill in all fields.', 'error');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+
+    if (res.ok) {
+      setMsg('loginMsg', 'Welcome back, ' + username + '!', 'success');
+      sessionStorage.setItem('casino_token', data.token);
+      sessionStorage.setItem('casino_user', username);
+      setTimeout(() => { window.location.href = '/'; }, 600);
+    } else {
+      setMsg('loginMsg', data.error || 'Login failed.', 'error');
+    }
+  } catch (e) {
+    setMsg('loginMsg', 'Server unreachable.', 'error');
+  }
+}
+
+// ── Signup ─────────────────────────────────────
+async function doSignup() {
+  const username = document.getElementById('signupUsername').value.trim();
+  const password = document.getElementById('signupPassword').value;
+  const confirm  = document.getElementById('signupConfirm').value;
+
+  if (!username || !password || !confirm) {
+    setMsg('signupMsg', 'Please fill in all fields.', 'error');
+    return;
+  }
+  if (password !== confirm) {
+    setMsg('signupMsg', 'Passwords do not match.', 'error');
+    return;
+  }
+  if (password.length < 4) {
+    setMsg('signupMsg', 'Password must be at least 4 characters.', 'error');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+
+    if (res.ok) {
+      setMsg('signupMsg', 'Account created! Logging in...', 'success');
+      sessionStorage.setItem('casino_token', data.token);
+      sessionStorage.setItem('casino_user', username);
+      setTimeout(() => { window.location.href = '/'; }, 800);
+    } else {
+      setMsg('signupMsg', data.error || 'Signup failed.', 'error');
+    }
+  } catch (e) {
+    setMsg('signupMsg', 'Server unreachable.', 'error');
+  }
+}
+
+// ── Enter key support ──────────────────────────
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    const loginVisible = document.getElementById('formLogin').style.display !== 'none';
+    if (loginVisible) doLogin(); else doSignup();
+  }
+});
+
+// ── Particles ─────────────────────────────────
+(function() {
+  const canvas = document.getElementById('particles');
+  const ctx = canvas.getContext('2d');
+  let W, H, particles;
+  function resize() { W = canvas.width = innerWidth; H = canvas.height = innerHeight; }
+  function mk() {
+    return { x: Math.random()*W, y: Math.random()*H, r: Math.random()*1.5+0.3,
+      vx:(Math.random()-.5)*.3, vy:(Math.random()-.5)*.3,
+      a: Math.random()*.4+.1, gold: Math.random()>.85 };
+  }
+  function init() { resize(); particles = Array.from({length:100},mk); }
+  function draw() {
+    ctx.clearRect(0,0,W,H);
+    for(const p of particles) {
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle = p.gold ? `rgba(245,185,66,${p.a})` : `rgba(255,255,255,${p.a*.4})`;
+      ctx.fill();
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.x<0)p.x=W; if(p.x>W)p.x=0;
+      if(p.y<0)p.y=H; if(p.y>H)p.y=0;
+    }
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize',resize);
+  init(); draw();
+})();
+</script>
+</body>
+</html>
