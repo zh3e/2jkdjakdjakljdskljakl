@@ -4,7 +4,9 @@
    ============================================= */
 
 // ─── CONFIG ───────────────────────────────────
-const WS_URL = `ws://${location.hostname}:3001`;
+const WS_URL = location.protocol === 'https:'
+  ? `wss://${location.host}`
+  : `ws://${location.host}`;
 
 // Player color palette (assigned sequentially)
 const PLAYER_COLORS = [
