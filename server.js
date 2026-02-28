@@ -521,7 +521,7 @@ const httpServer = http.createServer((req, res) => {
 });
 
 // ─── WEBSOCKET SERVER ─────────────────────────
-const wss = new WebSocket.Server({ port: CONFIG.WS_PORT });
+const wss = new WebSocket.Server({ server: httpServer });
 
 function broadcastToUser(username, msg) {
   const raw = JSON.stringify(msg);
@@ -895,7 +895,7 @@ httpServer.listen(CONFIG.HTTP_PORT, () => {
   console.log('║        🎰  BLAZE CASINO  🎰           ║');
   console.log('╠═══════════════════════════════════════╣');
   console.log(`║  Frontend  → http://localhost:${CONFIG.HTTP_PORT}      ║`);
-  console.log(`║  WebSocket → ws://localhost:${CONFIG.WS_PORT}         ║`);
+  console.log(`║  WebSocket → same port as HTTP               ║`);
   console.log(`║  API       → http://localhost:${CONFIG.HTTP_PORT}/api  ║`);
   console.log('╚═══════════════════════════════════════╝');
   console.log('');
