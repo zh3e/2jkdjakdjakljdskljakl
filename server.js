@@ -19,7 +19,7 @@ const CONFIG = {
   // Port du serveur HTTP (pour servir le frontend)
   HTTP_PORT: 3000,
   // Chemin vers le dossier public (frontend)
-  PUBLIC_DIR: path.join(__dirname, 'public'),
+  PUBLIC_DIR: path.join(__dirname),
 
   // ── MINECRAFT LOG ──
   // Option A : Chemin vers le fichier latest.log de votre serveur Minecraft
