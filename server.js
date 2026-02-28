@@ -279,10 +279,10 @@ const httpServer = http.createServer((req, res) => {
         // Find casino account linked to this Minecraft username
         const userRow = db.prepare('SELECT username FROM users WHERE mc_player = ? COLLATE NOCASE').get(mcPlayer);
         if (!userRow) {
-          // No linked account — fall back to old jackpot behaviour
-          addPayment(mcPlayer, amount);
+          // No linked account — just log it, do NOT auto-join jackpot
+          console.log(`[DEPOSIT] No linked account for MC player: ${mcPlayer} — payment ignored`);
           res.writeHead(200, {'Content-Type': 'application/json'});
-          res.end(JSON.stringify({ ok: true, mode: 'jackpot', player: mcPlayer, amount }));
+          res.end(JSON.stringify({ ok: true, mode: 'unlinked', player: mcPlayer, amount, message: 'No linked account found. Player must link their MC username on the site.' }));
           return;
         }
 
@@ -466,6 +466,7 @@ const httpServer = http.createServer((req, res) => {
     return;
   }
 
+  // /api/payment is kept for admin use only — not called by watcher anymore
   if (req.url === '/api/payment' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => body += chunk);
@@ -484,6 +485,7 @@ const httpServer = http.createServer((req, res) => {
           res.end(JSON.stringify({ error: 'Invalid player or amount' }));
           return;
         }
+        // Only used by admin panel — does NOT auto credit balance
         addPayment(player, amount);
         res.writeHead(200, {'Content-Type': 'application/json'});
         res.end(JSON.stringify({ ok: true, player, amount }));
