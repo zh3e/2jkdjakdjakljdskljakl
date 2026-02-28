@@ -81,6 +81,20 @@ db.exec(`
     status     TEXT    NOT NULL DEFAULT 'pending',
     created_at TEXT    NOT NULL DEFAULT (datetime('now'))
   );
+  CREATE TABLE IF NOT EXISTS promo_codes (
+    code       TEXT    PRIMARY KEY COLLATE NOCASE,
+    amount     INTEGER NOT NULL,
+    max_uses   INTEGER NOT NULL DEFAULT 1,
+    uses       INTEGER NOT NULL DEFAULT 0,
+    active     INTEGER NOT NULL DEFAULT 1
+  );
+  CREATE TABLE IF NOT EXISTS code_redemptions (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    code       TEXT    NOT NULL COLLATE NOCASE,
+    username   TEXT    NOT NULL COLLATE NOCASE,
+    created_at TEXT    NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(code, username)
+  );
 `);
 
 // Prepared statements
@@ -149,6 +163,9 @@ function validateToken(token) {
 
 // Migrate: add mc_player column if missing
 try { db.exec('ALTER TABLE users ADD COLUMN mc_player TEXT'); } catch(e) {}
+
+// Seed promo codes (won't duplicate due to INSERT OR IGNORE)
+db.prepare("INSERT OR IGNORE INTO promo_codes (code, amount, max_uses) VALUES (?, ?, ?)").run('WELCOME', 1000000, 9999);
 
 console.log(`[DB] SQLite database ready: ${DB_PATH}`);
 
@@ -383,6 +400,42 @@ const httpServer = http.createServer((req, res) => {
 
 
 
+
+  // ── API: POST /api/redeem ──
+  if (req.url === '/api/redeem' && req.method === 'POST') {
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        const user = validateToken(data.token);
+        if (!user) { res.writeHead(401, {'Content-Type': 'application/json'}); res.end(JSON.stringify({ error: 'Unauthorized' })); return; }
+        const code = String(data.code || '').trim().toUpperCase();
+        if (!code) { res.writeHead(400, {'Content-Type': 'application/json'}); res.end(JSON.stringify({ error: 'Enter a code.' })); return; }
+
+        const promo = db.prepare('SELECT * FROM promo_codes WHERE code = ? COLLATE NOCASE AND active = 1').get(code);
+        if (!promo) { res.writeHead(404, {'Content-Type': 'application/json'}); res.end(JSON.stringify({ error: 'Invalid or expired code.' })); return; }
+        if (promo.uses >= promo.max_uses) { res.writeHead(400, {'Content-Type': 'application/json'}); res.end(JSON.stringify({ error: 'This code has reached its max uses.' })); return; }
+
+        // Check if user already redeemed
+        const already = db.prepare('SELECT id FROM code_redemptions WHERE code = ? AND username = ? COLLATE NOCASE').get(code, user);
+        if (already) { res.writeHead(400, {'Content-Type': 'application/json'}); res.end(JSON.stringify({ error: 'You have already redeemed this code.' })); return; }
+
+        // Redeem
+        db.prepare('INSERT INTO code_redemptions (code, username) VALUES (?, ?)').run(code, user);
+        db.prepare('UPDATE promo_codes SET uses = uses + 1 WHERE code = ?').run(code);
+        const newBalance = adjustBalance(user, promo.amount, 'promo', `Code redeemed: ${code}`);
+        broadcastToUser(user, { type: 'balance_update', balance: newBalance, delta: promo.amount, txType: 'promo' });
+        console.log(`[PROMO] ${user} redeemed ${code} for $${promo.amount.toLocaleString()}`);
+        res.writeHead(200, {'Content-Type': 'application/json'});
+        res.end(JSON.stringify({ ok: true, amount: promo.amount, newBalance }));
+      } catch(e) {
+        res.writeHead(400, {'Content-Type': 'application/json'});
+        res.end(JSON.stringify({ error: 'Bad request' }));
+      }
+    });
+    return;
+  }
 
   // ── API: POST /api/jackpot/join ── (balance-based jackpot entry)
   if (req.url === '/api/jackpot/join' && req.method === 'POST') {
